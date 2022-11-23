@@ -1,5 +1,7 @@
 torchvision
 pillow
 numpy
+scipy 
+scikit-image
 cupy-cuda11x
 cucim
