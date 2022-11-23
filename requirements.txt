@@ -1,0 +1,5 @@
+torchvision
+pillow
+numpy
+cupy-cuda11x
+cucim
