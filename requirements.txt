@@ -1,7 +1,12 @@
 torchvision
+pytorch
 pillow
 numpy
 scipy 
 scikit-image
 cupy-cuda11x
 cucim
+kornia
+einops
+pynvjpeg
+cv2
