@@ -100,7 +100,7 @@ class DefocusBlur:
 
         return torch.as_tensor(img, device='cuda')
 
-class FastMotionBlur:
+class MotionBlur:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
@@ -109,8 +109,7 @@ class FastMotionBlur:
         isgray = n_channels == 1
 
         #c = [(10, 3), (12, 4), (14, 5)]
-        c = [5,7,9]
-        angle = np.random.uniform(-45,45)
+        c = [(5, 0.3), (7, 0.5), (9, 0.7)]
         if mag < 0 or mag >= len(c):
             index = np.random.randint(0, len(c))
         else:
@@ -118,12 +117,13 @@ class FastMotionBlur:
         c = c[index]
 
         img = transforms.ToTensor()(img).to('cuda')
-        motion_blur = kornia.augmentation.RandomMotionBlur(p=prob, kernel_size=c, angle=45., direction=1.0)
+        img = torch.unsqueeze(img, 0)
+        img = kornia.filters.motion_blur(img, kernel_size=c[0], angle=np.random.uniform(-45,45), direction=c[1])
 
         if isgray:
             img = ImageOps.grayscale(img)
 
-        return torch.squeeze(motion_blur(img))
+        return torch.squeeze(img)
     
 class GlassBlur:
     def __call__(self, img, mag=-1, prob=1.):
