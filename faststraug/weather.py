@@ -44,6 +44,64 @@ class Fog:
         return torch.as_tensor(img, device='cuda')
         #return Image.fromarray(cp.asnumpy(img).astype(cp.uint8))
 
+class FastFrost:
+    def __call__(self, img, mag=-1, prob=1.):
+        if np.random.uniform(0, 1) > prob:
+            return img
+
+        w, h = img.size
+        img = transforms.functional.pil_to_tensor(img).to('cuda')
+
+        c = [(0.78, 0.22), (0.64, 0.36), (0.5, 0.5)]
+        if mag < 0 or mag >= len(c):
+            index = np.random.randint(0, len(c))
+        else:
+            index = mag
+        c = c[index]
+
+        filename = [resource_filename(__name__, 'frost/frost1.png'),
+                    resource_filename(__name__, 'frost/frost2.png'),
+                    resource_filename(__name__, 'frost/frost3.png'),
+                    resource_filename(__name__, 'frost/frost4.jpg'),
+                    resource_filename(__name__, 'frost/frost5.jpg'),
+                    resource_filename(__name__, 'frost/frost6.jpg')]
+
+        index = np.random.randint(0, len(filename))
+        filename = filename[index]
+        # Some images have transparency. Remove alpha channel.
+        frost = transforms.functional.pil_to_tensor(Image.open(filename).convert('RGB')).to('cuda')
+
+        # Resize the frost image to match the input image's dimensions
+        f_h, f_w = frost.shape[1:]
+        if w / h > f_w / f_h:
+            f_h = round(f_h * w / f_w)
+            f_w = w
+        else:
+            f_w = round(f_w * h / f_h)
+            f_h = h
+        frost = transforms.Resize(size=(f_h, f_w), antialias=True)(frost)
+
+        # randomly crop
+        y_start, x_start = np.random.randint(0, f_h - h + 1), np.random.randint(0, f_w - w + 1)
+        frost = transforms.functional.crop(frost, y_start, x_start, h, w)
+
+        #n_channels = len(img.getbands())
+        n_channels = img.shape[0]
+        isgray = n_channels == 1
+
+        '''
+        if isgray:
+            img = np.expand_dims(img, axis=2)
+            img = np.repeat(img, 3, axis=2)
+        '''
+        img = torch.clip(torch.round(c[0] * img + c[1] * frost), 0, 255)
+
+        '''
+        if isgray:
+            img = ImageOps.grayscale(img)
+        '''
+        return img / 255.
+        
 class Rain:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
