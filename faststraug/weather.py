@@ -44,7 +44,57 @@ class Fog:
         return torch.as_tensor(img, device='cuda')
         #return Image.fromarray(cp.asnumpy(img).astype(cp.uint8))
 
-class FastFrost:
+class Snow:
+    def __call__(self, img, mag=-1, prob=1.):
+        if np.random.uniform(0, 1) > prob:
+            return img
+
+        w, h = img.size
+
+        c = [(0.1, 0.3, 3, 0.5, 5, 0.5, 0.8),
+             (0.2, 0.3, 2, 0.5, 7, 0.5, 0.7),
+             (0.55, 0.3, 4, 0.9, 11, 0.5, 0.7)]
+        
+        if mag < 0 or mag >= len(c):
+            index = np.random.randint(0, len(c))
+        else:
+            index = mag
+        c = c[index]
+
+        n_channels = len(img.getbands())
+        isgray = n_channels == 1
+
+        img = transforms.ToTensor()(img).to('cuda')
+
+        '''
+        if isgray:
+            img = np.expand_dims(img, axis=2)
+            img = np.repeat(img, 3, axis=2)
+        '''
+        
+        snow_layer = torch.normal(size=(h,w), mean=c[0], std=c[1])  # [:2] for monochrome
+
+        snow_layer[snow_layer < c[3]] = 0
+
+        snow_layer = snow_layer.to('cuda')
+
+        snow_layer = torch.clip(snow_layer, 0, 1)
+        snow_layer = kornia.filters.motion_blur(torch.unsqueeze(torch.unsqueeze(snow_layer, 0), 0), kernel_size=c[4], angle=np.random.uniform(-135,-45), direction=c[5])
+        snow_layer = torch.squeeze(snow_layer, 0)
+
+        img = c[6] * img
+        gray_img = (1 - c[6]) * torch.maximum(img, kornia.color.rgb_to_grayscale(img, rgb_weights=torch.tensor([0.299, 0.587, 0.114])) * 1.5 + 0.5)
+        img += gray_img
+        img = torch.clip(img + snow_layer + torch.rot90(snow_layer, k=2, dims=[1,2]), 0, 1)
+
+        '''
+        img = Image.fromarray(img.astype(np.uint8))
+        if isgray:
+            img = ImageOps.grayscale(img)
+        '''
+        return img
+        
+class Frost:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return img
