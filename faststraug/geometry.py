@@ -150,7 +150,8 @@ class TranslateXAbs:
         if np.random.uniform(0, 1) > 0.5:
             v = -v
         #return img.transform(img.size, Image.AFFINE, (1, 0, v, 0, 1, 0))
-        return kornia.geometry.transform.warp_affine(img, M=[[[1, 0, v],[0, 1, 0]]], dsize=img.shape[2:])
+        m = torch.Tensor([[[1, 0, v],[0, 1, 0]]]).to('cuda')
+        return kornia.geometry.transform.warp_affine(img, M=m.double(), dsize=img.shape[2:])
 
 
 class TranslateYAbs:
@@ -163,4 +164,5 @@ class TranslateYAbs:
         if np.random.uniform(0, 1) > 0.5:
             v = -v
         #return img.transform(img.size, Image.AFFINE, (1, 0, 0, 0, 1, v))
-        return kornia.geometry.transform.warp_affine(img, M=[[[1, 0, 0],[0, 1, v]]], dsize=img.shape[2:])
+        m = torch.Tensor([[[1, 0, 0],[0, 1, v]]]).to('cuda')
+        return kornia.geometry.transform.warp_affine(img, M=m.double(), dsize=img.shape[2:])
