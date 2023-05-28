@@ -3,7 +3,7 @@ import torchvision.transforms as transforms
 from PIL import ImageDraw
 
 class VGrid:
-    def __call__(self, img, copy=True, max_width=4, mag=-1, prob=1.):
+    def __call__(self, img, copy=True, max_width=4, mag=-1, prob=1., isgrid=False):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
@@ -24,10 +24,13 @@ class VGrid:
             x = image_stripe * i + line_width * (i - 1)
             draw.line([(x, 0), (x, h)], width=line_width, fill='black')
 
+        if isgrid:
+            return img
+
         return transforms.ToTensor()(img).to('cuda')
     
 class HGrid:
-    def __call__(self, img, copy=True, max_width=4, mag=-1, prob=1.):
+    def __call__(self, img, copy=True, max_width=4, mag=-1, prob=1., isgrid=False):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
@@ -47,6 +50,9 @@ class HGrid:
             y = image_stripe * i + line_width * (i - 1)
             draw.line([(0, y), (w, y)], width=line_width, fill='black')
 
+        if isgrid:
+            return img
+
         return transforms.ToTensor()(img).to('cuda')
 
 class Grid:
@@ -54,8 +60,8 @@ class Grid:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        img = VGrid()(img, copy=True, mag=mag)
-        img = HGrid()(img, copy=False, mag=mag)
+        img = VGrid()(img, copy=True, mag=mag, isgrid=True)
+        img = HGrid()(img, copy=False, mag=mag, isgrid=True)
         return transforms.ToTensor()(img).to('cuda')
     
 class RectGrid:
@@ -81,9 +87,10 @@ class RectGrid:
             y2 = y_center + dy
             if isellipse:
                 draw.ellipse([(x1, y1), (x2, y2)], width=line_width, outline='black')
+                return img
             else:
                 draw.rectangle([(x1, y1), (x2, y2)], width=line_width, outline='black')
-
+                
         return transforms.ToTensor()(img).to('cuda')
     
 class EllipseGrid:
