@@ -87,10 +87,12 @@ class RectGrid:
             y2 = y_center + dy
             if isellipse:
                 draw.ellipse([(x1, y1), (x2, y2)], width=line_width, outline='black')
-                return img
             else:
                 draw.rectangle([(x1, y1), (x2, y2)], width=line_width, outline='black')
                 
+        if isellipse:
+            return img
+
         return transforms.ToTensor()(img).to('cuda')
     
 class EllipseGrid:
