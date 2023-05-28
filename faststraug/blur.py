@@ -114,20 +114,18 @@ class MotionBlur:
 class GlassBlur:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
-            return img
+            return transforms.ToTensor()(img).to('cuda')
 
-        img = transforms.ToTensor()(img).to('cuda')
-        h, w = img.shape[1:]
-        # c = [(0.7, 1, 2), (0.9, 2, 1), (1, 2, 3), (1.1, 3, 2), (1.5, 4, 2)][severity - 1]
+        w, h = img.size
         c = [(0.45, 1, 1), (0.6, 1, 2), (0.75, 1, 2)]  # , (1, 2, 3)] #prev 2 levels only
         if mag < 0 or mag >= len(c):
-            index = np.random.integers(0, len(c))
+            index = np.random.randint(0, len(c))
         else:
             index = mag
 
         c = c[index]
 
-        img = torch.uint8(gaussian(img, sigma=c[0], channel_axis=-1) * 255)
+        img = np.uint8(gaussian(np.asarray(img) / 255., sigma=c[0], channel_axis=-1) * 255)
 
         # locally shuffle pixels
         for i in range(c[2]):
@@ -136,7 +134,7 @@ class GlassBlur:
                     dx, dy = np.random.randint(-c[1], c[1], size=(2,))
                     y_prime, x_prime = y + dy, x + dx
                     # swap
-                    img[x, y], img[x_prime, y_prime] = img[x_prime, y_prime], img[x, y]
+                    img[y, x], img[y_prime, x_prime] = img[y_prime, x_prime], img[y, x]
 
-        img = torch.clip(gaussian(img, sigma=c[0], channel_axis=-1), 0, 1) * 255
-        return img
+        img = np.clip(gaussian(img / 255., sigma=c[0], channel_axis=-1), 0, 1)
+        return transforms.ToTensor()(img).to('cuda')
