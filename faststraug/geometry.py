@@ -135,7 +135,7 @@ class Rotate:
         img = transforms.functional.rotate(img, angle=angle, interpolation=transforms.InterpolationMode.BILINEAR, expand=not iscurve)
         img = transforms.Resize(size=(h, w), interpolation=transforms.InterpolationMode.BICUBIC, antialias=True)(img)
 
-        return img
+        return img / 255.
     
 class TranslateXAbs:
     def __call__(self, img, val=0, prob=1.):
