@@ -15,7 +15,7 @@ class Posterize:
         bit = np.random.randint(c, c + 2)
         img = transforms.functional.pil_to_tensor(img).to('cuda')
         img = transforms.functional.posterize(img, bit)
-        return img
+        return img / 255.
     
 class Solarize:
     def __call__(self, img, mag=-1, prob=1.):
@@ -30,14 +30,14 @@ class Solarize:
         c = c[index]
         thresh = np.random.randint(c, c + 64)
         img = transforms.functional.pil_to_tensor(img).to('cuda')
-        return transforms.functional.solarize(img, thresh)
+        return transforms.functional.solarize(img, thresh) / 255.
     
 class Invert:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        return transforms.functional.invert(transforms.functional.pil_to_tensor(img).to('cuda'))
+        return transforms.functional.invert(transforms.functional.pil_to_tensor(img).to('cuda')) / 255.
 
 class Sharpness:
     def __call__(self, img, mag=-1, prob=1.):
@@ -53,14 +53,14 @@ class Sharpness:
     
 class Equalize:
     def __call__(self, img, mag=-1, prob=1.):
-        return transforms.RandomEqualize(p=prob)(transforms.functional.pil_to_tensor(img).to('cuda'))
+        return transforms.RandomEqualize(p=prob)(transforms.functional.pil_to_tensor(img).to('cuda')) / 255.
 
 class AutoContrast:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        return transforms.functional.autocontrast(transforms.functional.pil_to_tensor(img).to('cuda'))
+        return transforms.functional.autocontrast(transforms.functional.pil_to_tensor(img).to('cuda')) / 255.
     
 class Color:
     def __call__(self, img, mag=-1, prob=1.):
@@ -75,4 +75,4 @@ class Color:
         c = c[index]
         magnitude = np.random.uniform(c, c + .6)
 
-        return transforms.functional.adjust_saturation(transforms.functional.pil_to_tensor(img).to('cuda'), magnitude)
+        return transforms.functional.adjust_saturation(transforms.functional.pil_to_tensor(img).to('cuda'), magnitude) / 255.
