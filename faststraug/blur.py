@@ -1,5 +1,5 @@
 import cupy as cp
-from cucim.skimage.filters import gaussian
+from skimage.filters import gaussian
 import numpy as np
 import torch
 import torchvision.transforms as transforms
