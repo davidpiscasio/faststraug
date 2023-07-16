@@ -1,5 +1,6 @@
 import numpy as np
 import torchvision.transforms as transforms
+import torch
 
 class Posterize:
     def __call__(self, img, mag=-1, prob=1.):
@@ -13,7 +14,14 @@ class Posterize:
             index = mag
         c = c[index]
         bit = np.random.randint(c, c + 2)
-        img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            img = img*255
+            img = img.to(torch.uint8)
+        else:
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
+            
         img = transforms.functional.posterize(img, bit)
         return img / 255.
     
@@ -29,7 +37,14 @@ class Solarize:
             index = mag
         c = c[index]
         thresh = np.random.randint(c, c + 64)
-        img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            img = img*255
+            img = img.to(torch.uint8)
+        else:
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
         return transforms.functional.solarize(img, thresh) / 255.
     
 class Invert:
@@ -37,7 +52,14 @@ class Invert:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        return transforms.functional.invert(transforms.functional.pil_to_tensor(img).to('cuda')) / 255.
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            img = img*255
+            img = img.to(torch.uint8)
+        else:
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
+        return transforms.functional.invert(img) / 255.
 
 class Sharpness:
     def __call__(self, img, mag=-1, prob=1.):
@@ -49,18 +71,35 @@ class Sharpness:
         c = c[index]
         magnitude = np.random.uniform(c, c + .6)
         
-        return transforms.RandomAdjustSharpness(magnitude, p=prob)(transforms.ToTensor()(img).to('cuda'))
+        if not torch.is_tensor(img):
+            img = transforms.ToTensor()(img).to('cuda')
+        
+        return transforms.RandomAdjustSharpness(magnitude, p=prob)(img)
     
 class Equalize:
     def __call__(self, img, mag=-1, prob=1.):
-        return transforms.RandomEqualize(p=prob)(transforms.functional.pil_to_tensor(img).to('cuda')) / 255.
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            img = img*255
+            img = img.to(torch.uint8)
+        else:
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
+        return transforms.RandomEqualize(p=prob)(img) / 255.
 
 class AutoContrast:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        return transforms.functional.autocontrast(transforms.functional.pil_to_tensor(img).to('cuda')) / 255.
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            img = img*255
+            img = img.to(torch.uint8)
+        else:
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
+        return transforms.functional.autocontrast(img) / 255.
     
 class Color:
     def __call__(self, img, mag=-1, prob=1.):
@@ -75,4 +114,11 @@ class Color:
         c = c[index]
         magnitude = np.random.uniform(c, c + .6)
 
-        return transforms.functional.adjust_saturation(transforms.functional.pil_to_tensor(img).to('cuda'), magnitude) / 255.
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            img = img*255
+            img = img.to(torch.uint8)
+        else:
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
+        return transforms.functional.adjust_saturation(img, magnitude) / 255.
