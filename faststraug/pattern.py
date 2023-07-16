@@ -1,12 +1,16 @@
 import numpy as np
 import torchvision.transforms as transforms
 from PIL import ImageDraw
+import torch
 
 class VGrid:
     def __call__(self, img, copy=True, max_width=4, mag=-1, prob=1., isgrid=False):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
+        if torch.is_tensor(img):
+            img = transforms.ToPILImage()(img)
+        
         if copy:
             img = img.copy()
         w, h = img.size
@@ -34,6 +38,9 @@ class HGrid:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
+        if torch.is_tensor(img):
+            img = transforms.ToPILImage()(img)
+        
         if copy:
             img = img.copy()
         w, h = img.size
@@ -60,6 +67,9 @@ class Grid:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
+        if torch.is_tensor(img):
+            img = transforms.ToPILImage()(img)
+        
         img = VGrid()(img, copy=True, mag=mag, isgrid=True)
         img = HGrid()(img, copy=False, mag=mag, isgrid=True)
         return transforms.ToTensor()(img).to('cuda')
@@ -69,6 +79,9 @@ class RectGrid:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
+        if torch.is_tensor(img):
+            img = transforms.ToPILImage()(img)
+        
         img = img.copy()
         w, h = img.size
         line_width = 1
@@ -100,5 +113,8 @@ class EllipseGrid:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
+        if torch.is_tensor(img):
+            img = transforms.ToPILImage()(img)
+        
         img = RectGrid()(img, isellipse=True, mag=mag, prob=prob)
         return transforms.ToTensor()(img).to('cuda')
