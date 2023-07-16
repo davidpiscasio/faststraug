@@ -14,7 +14,16 @@ class Fog:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            n_channels, h, w = img.shape
+            #img = transforms.ToPILImage()(img)
+            img = cp.squeeze(rearrange(cp.asarray(img), 'c h w -> h w c'))
+        else:
+            w, h = img.size
+            n_channels = len(img.getbands())
+            img = cp.asarray(img) / 255.
+            
         c = [(1.5, 2), (2., 2), (2.5, 1.7)]
         if mag < 0 or mag >= len(c):
             index = np.random.randint(0, len(c)).get()
@@ -22,10 +31,10 @@ class Fog:
             index = mag
         c = c[index]
 
-        n_channels = len(img.getbands())
+        #n_channels = len(img.getbands())
         isgray = n_channels == 1
 
-        img = cp.asarray(img) / 255.
+        #img = cp.asarray(img) / 255.
         max_val = img.max()
         # Make sure fog image is at least twice the size of the input image
         max_size = 2 ** math.ceil(math.log2(max(w, h)) + 1)
@@ -39,17 +48,30 @@ class Fog:
         img += fog
         img = cp.clip(img * max_val / (max_val + c[0]), 0, 1)
 
-        if not isgray:
+        if isgray and img.ndim == 2:
+            img = cp.expand_dims(img, axis=0)
+        else:
             img = rearrange(img, 'h w c -> c h w')
+            
+        img = torch.as_tensor(img, device='cuda')
+            
+        if img.shape[0] != 1 and isgray:
+            img = transforms.functional.rgb_to_grayscale(img)
 
-        return torch.as_tensor(img, device='cuda')
+        return img
 
 class Rain:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            h, w = img.shape[1:]
+        else:
+            w, h = img.size
+            img = transforms.ToTensor()(img).to('cuda')
+            
         max_length = min(w, h, 10)
         c = [50, 70, 90]
         if mag < 0 or mag >= len(c):
@@ -58,20 +80,26 @@ class Rain:
             index = mag
         c = c[index]
         
-        img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
         rain = kornia.augmentation.RandomRain(p=prob, number_of_drops=(c, c + 20), drop_height=(5, max_length), drop_width=(1,2))
-        return torch.squeeze(rain(img))
+        return torch.squeeze(rain(img), 0)
 
 class Frost:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
-        n_channels = len(img.getbands())
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            n_channels, h, w = img.shape
+            img = img*255
+        else:
+            w, h = img.size
+            n_channels = len(img.getbands())
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
         isgray = n_channels == 1
 
-        img = transforms.functional.pil_to_tensor(img).to('cuda')
+        #img = transforms.functional.pil_to_tensor(img).to('cuda')
 
         c = [(0.78, 0.22), (0.64, 0.36), (0.5, 0.5)]
         if mag < 0 or mag >= len(c):
@@ -120,7 +148,13 @@ class Snow:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            n_channels, h, w = img.shape
+        else:
+            w, h = img.size
+            n_channels = len(img.getbands())
+            img = transforms.ToTensor()(img).to('cuda')
 
         c = [(0.1, 0.3, 3, 0.5, 5, 0.5, 0.8),
              (0.2, 0.3, 2, 0.5, 7, 0.5, 0.7),
@@ -132,10 +166,10 @@ class Snow:
             index = mag
         c = c[index]
 
-        n_channels = len(img.getbands())
+        #n_channels = len(img.getbands())
         isgray = n_channels == 1
 
-        img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
 
         if isgray:
             img = torch.repeat_interleave(img, 3, dim=0)
@@ -165,6 +199,9 @@ class Shadow:
         if np.random.uniform(0, 1) > prob:
             return img
 
+        if torch.is_tensor(img):
+            img = transforms.ToPILImage()(img)
+        
         w, h = img.size
         n_channels = len(img.getbands())
         isgray = n_channels == 1
