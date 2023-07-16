@@ -9,8 +9,13 @@ class Stretch:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
-        img = transforms.ToTensor()(img).to('cuda')
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            h, w = img.shape[1:]
+        else:
+            w, h = img.size
+            img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
         img = torch.unsqueeze(img,0)
 
         w_33 = 0.33 * w
@@ -74,15 +79,20 @@ class Stretch:
 
         kernel_weights, affine_weights = kornia.geometry.transform.get_tps_transform(dstpt, srcpt)
         img = kornia.geometry.transform.warp_image_tps(img.double(), srcpt, kernel_weights, affine_weights, align_corners=True)
-        return torch.squeeze(img)
+        return torch.squeeze(img, 0)
     
 class Distort:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
-        img = transforms.ToTensor()(img).to('cuda')
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            h, w = img.shape[1:]
+        else:
+            w, h = img.size
+            img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
         img = torch.unsqueeze(img,0)
 
         w_33 = 0.33 * w
@@ -156,7 +166,7 @@ class Distort:
 
         kernel_weights, affine_weights = kornia.geometry.transform.get_tps_transform(dstpt, srcpt)
         img = kornia.geometry.transform.warp_image_tps(img.double(), srcpt, kernel_weights, affine_weights, align_corners=True)
-        return torch.squeeze(img)
+        return torch.squeeze(img, 0)
     
 class Curve:
     def __init__(self, square_side=224, rng=None):
@@ -166,11 +176,19 @@ class Curve:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        orig_w, orig_h = img.size
-        n_channels = len(img.getbands())
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            n_channels, orig_h, orig_w = img.shape
+        else:
+            orig_w, orig_h = img.size
+            n_channels = len(img.getbands())
+            img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
+        #orig_w, orig_h = img.size
+        #n_channels = len(img.getbands())
         isgray = n_channels == 1
 
-        img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
 
         if orig_h != self.side or orig_w != self.side:
             img = transforms.Resize(size=(self.side, self.side), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True)(img)
@@ -230,7 +248,7 @@ class Curve:
 
         kernel_weights, affine_weights = kornia.geometry.transform.get_tps_transform(dstpt, srcpt)
         img = kornia.geometry.transform.warp_image_tps(img.double(), srcpt, kernel_weights, affine_weights, align_corners=True)
-        img = torch.squeeze(img)
+        img = torch.squeeze(img,0)
 
         if isflip:
             img = transforms.functional.vflip(img)
@@ -238,7 +256,7 @@ class Curve:
         else:
             rect = (0, 0, self.side // 2, self.side)
 
-        img = torch.unsqueeze(img,0) if isgray else img
+        #img = torch.unsqueeze(img,0) if isgray else img
         img = transforms.functional.resized_crop(img, top=rect[0], left=rect[1], height=rect[2], width=rect[3], size=(orig_h, orig_w), interpolation=transforms.InterpolationMode.BILINEAR, antialias=True)
 
         return img
