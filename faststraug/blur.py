@@ -13,18 +13,24 @@ class GaussianBlur:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            h, w = img.shape[1:]
+        else:
+            w, h = img.size
+            img = transforms.ToTensor()(img).to('cuda')
+            
         ksize = int(min(w, h) / 2) // 4
         ksize = (ksize * 2) + 1
         kernel = (ksize, ksize)
         sigmas = [.5, 1, 2]
         if mag < 0 or mag >= len(sigmas):
-            index = cp.random.randint(0, len(sigmas)).get()
+            index = np.random.randint(0, len(sigmas)).get()
         else:
             index = mag
         sigma = sigmas[index]
-        img = transforms.ToTensor()(img)
-        img = img.to('cuda')
+        
+        #img = transforms.ToTensor()(img).to('cuda')
         img = transforms.GaussianBlur(kernel_size=kernel, sigma=sigma)(img)
         return img
 
@@ -33,13 +39,15 @@ class ZoomBlur:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        img = transforms.ToTensor()(img).to('cuda')
+        if not torch.is_tensor(img):
+            img = transforms.ToTensor()(img).to('cuda')
+        
         h, w = img.shape[1:]
         c = [np.arange(1, 1.11, .01),
              np.arange(1, 1.16, .01),
              np.arange(1, 1.21, .02)]
         if mag < 0 or mag >= len(c):
-            index = cp.random.randint(0, len(c))
+            index = np.random.randint(0, len(c))
         else:
             index = mag
 
@@ -66,7 +74,15 @@ class DefocusBlur:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        n_channels = len(img.getbands())
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim == 2 else img
+            n_channels = img.shape[0]
+            #img = transforms.ToPILImage()(img)
+            img = cp.squeeze(rearrange(cp.asarray(img), 'c h w -> h w c'))
+        else:
+            n_channels = len(img.getbands())
+            img = cp.asarray(img) / 255.
+        
         isgray = n_channels == 1
         c = [(2, 0.1), (3, 0.1), (4, 0.1)]  # , (6, 0.5)] #prev 2 levels only
         if mag < 0 or mag >= len(c):
@@ -75,7 +91,7 @@ class DefocusBlur:
             index = mag
         c = c[index]
 
-        img = cp.asarray(img) / 255.
+        #img = cp.asarray(img) / 255.
         if isgray:
             img = cp.expand_dims(img, axis=2)
             img = cp.repeat(img, 3, axis=2)
@@ -90,14 +106,21 @@ class DefocusBlur:
 
         img = cp.clip(channels, 0, 1)
         img = rearrange(img, 'h w c -> c h w')
+        img = torch.as_tensor(img, device='cuda')
+        
+        if img.shape[0] != 1 and isgray:
+            img = transforms.functional.rgb_to_grayscale(img)
 
-        return torch.as_tensor(img, device='cuda')
+        return img
 
 class MotionBlur:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
+        if not torch.is_tensor(img):
+            img = transforms.ToTensor()(img).to('cuda')
+        
         c = [(5, 0.3), (7, 0.5), (9, 0.7)]
         if mag < 0 or mag >= len(c):
             index = np.random.randint(0, len(c))
@@ -105,17 +128,20 @@ class MotionBlur:
             index = mag
         c = c[index]
 
-        img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
         img = torch.unsqueeze(img, 0)
         img = kornia.filters.motion_blur(img, kernel_size=c[0], angle=np.random.uniform(-45,45), direction=c[1])
 
-        return torch.squeeze(img)
+        return torch.squeeze(img, 0)
     
 class GlassBlur:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
+        if torch.is_tensor(img):
+            img = transforms.ToPILImage()(img)
+        
         w, h = img.size
         c = [(0.45, 1, 1), (0.6, 1, 2), (0.75, 1, 2)]  # , (1, 2, 3)] #prev 2 levels only
         if mag < 0 or mag >= len(c):
