@@ -12,8 +12,13 @@ class Shrink:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
-        img = transforms.ToTensor()(img).to('cuda')
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim < 3 else img
+            h, w = img.shape[1:]
+        else:
+            w, h = img.size
+            img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
         img = torch.unsqueeze(img,0)
 
         w_33 = 0.33 * w
@@ -76,15 +81,20 @@ class Shrink:
         else:
             img = self.translateYAbs(img, val=y)
 
-        return torch.squeeze(img)
+        return torch.squeeze(img, 0)
 
 class Perspective:
     def __call__(self, img, mag=-1, prob=1.):
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
-        img = transforms.ToTensor()(img).to('cuda')
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim < 3 else img
+            h, w = img.shape[1:]
+        else:
+            w, h = img.size
+            img = transforms.ToTensor()(img).to('cuda')
+        #img = transforms.ToTensor()(img).to('cuda')
         src = [[0, 0], [w, 0], [0, h], [w, h]]
 
         b = [.05, .1, .15]
@@ -115,9 +125,17 @@ class Rotate:
         if np.random.uniform(0, 1) > prob:
             return transforms.ToTensor()(img).to('cuda')
 
-        w, h = img.size
-
-        img = transforms.functional.pil_to_tensor(img).to('cuda')
+        #w, h = img.size
+        if torch.is_tensor(img):
+            img = torch.unsqueeze(img, 0) if img.ndim < 3 else img
+            h, w = img.shape[1:]
+            img = img*255
+            img = img.to(torch.uint8)
+        else:
+            w, h = img.size
+            img = transforms.functional.pil_to_tensor(img).to('cuda')
+        #img = transforms.functional.pil_to_tensor(img).to('cuda')
+        
         if h != self.side or w != self.side:
             img = transforms.Resize(size=(self.side, self.side), interpolation=transforms.InterpolationMode.BICUBIC, antialias=True)(img)
 
